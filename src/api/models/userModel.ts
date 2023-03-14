@@ -1,17 +1,14 @@
-import promisePool from '../../database/db';
+import {promisePool} from '../../database/db';
 import CustomError from '../../classes/CustomError';
-import { ResultSetHeader, RowDataPacket } from 'mysql2';
-import User from '../../interfaces/User';
+import {ResultSetHeader, RowDataPacket} from 'mysql2';
+import {GetUser, PostUser, PutUser, User} from '../../interfaces/User';
 
-// custom interface for selecting users
-interface UserSelect extends RowDataPacket, User {}
-
-const getAllUsers = async (): Promise<UserSelect[]> => {
-  const [rows] = await promisePool.execute<UserSelect[]>(
+const getAllUsers = async (): Promise<User[]> => {
+  const [rows] = await promisePool.execute<GetUser[]>(
     `
-    SELECT user_id, name, email, role 
-    FROM wop_user
-    `,
+    SELECT user_id, user_name, email, role 
+    FROM sssf_user
+    `
   );
   if (rows.length === 0) {
     throw new CustomError('No users found', 404);
@@ -19,14 +16,14 @@ const getAllUsers = async (): Promise<UserSelect[]> => {
   return rows;
 };
 
-const getUser = async (userId: string): Promise<UserSelect> => {
-  const [rows] = await promisePool.execute<UserSelect[]>(
+const getUser = async (userId: string): Promise<User> => {
+  const [rows] = await promisePool.execute<GetUser[]>(
     `
-    SELECT user_id, name, email, role 
-    FROM wop_user 
+    SELECT user_id, user_name, email, role 
+    FROM sssf_user 
     WHERE user_id = ?;
     `,
-    [userId],
+    [userId]
   );
   if (rows.length === 0) {
     throw new CustomError('No users found', 404);
@@ -34,13 +31,13 @@ const getUser = async (userId: string): Promise<UserSelect> => {
   return rows[0];
 };
 
-const addUser = async (data: string[]): Promise<number> => {
+const addUser = async (data: PostUser): Promise<number> => {
   const [headers] = await promisePool.execute<ResultSetHeader>(
     `
-    INSERT INTO wop_user (name, email, password) 
+    INSERT INTO sssf_user (user_name, email, password) 
     VALUES (?, ?, ?);
     `,
-    data,
+    [data.user_name, data.email, data.password]
   );
   if (headers.affectedRows === 0) {
     throw new CustomError('No users added', 400);
@@ -49,28 +46,25 @@ const addUser = async (data: string[]): Promise<number> => {
   return headers.insertId;
 };
 
-const updateUser = async (data: string[]): Promise<boolean> => {
-  const dataWithNull = data.map((value) => (value === undefined ? null : value));
-  const [headers] = await promisePool.execute<ResultSetHeader>(
-    `
-    UPDATE wop_user set name = COALESCE(?, name), email = COALESCE(?, email), password = COALESCE(?, password) 
-    WHERE user_id = ?;
-    `,
-    dataWithNull,
-  );
+const updateUser = async (data: PutUser, userId: number): Promise<boolean> => {
+  const sql = promisePool.format('UPDATE sssf_user SET ? WHERE user_id = ?;', [
+    data,
+    userId,
+  ]);
+  const [headers] = await promisePool.execute<ResultSetHeader>(sql);
   if (headers.affectedRows === 0) {
     throw new CustomError('No users updated', 400);
   }
   return true;
 };
 
-const deleteUser = async (userId: string): Promise<boolean> => {
+const deleteUser = async (userId: number): Promise<boolean> => {
   const [headers] = await promisePool.execute<ResultSetHeader>(
     `
-    DELETE FROM wop_user 
+    DELETE FROM sssf_user 
     WHERE user_id = ?;
     `,
-    [userId],
+    [userId]
   );
   if (headers.affectedRows === 0) {
     throw new CustomError('No users deleted', 400);
@@ -78,18 +72,18 @@ const deleteUser = async (userId: string): Promise<boolean> => {
   return true;
 };
 
-const getUserLogin = async (email: string): Promise<UserSelect> => {
-  const [rows] = await promisePool.execute<UserSelect[]>(
+const getUserLogin = async (email: string): Promise<User> => {
+  const [rows] = await promisePool.execute<GetUser[]>(
     `
-    SELECT * FROM wop_user 
+    SELECT * FROM sssf_user 
     WHERE email = ?;
     `,
-    [email],
+    [email]
   );
   if (rows.length === 0) {
-    throw new CustomError('No user found', 404);
+    throw new CustomError('Invalid username/password', 200);
   }
   return rows[0];
 };
 
-export { getAllUsers, getUser, addUser, updateUser, deleteUser, getUserLogin };
+export {getAllUsers, getUser, addUser, updateUser, deleteUser, getUserLogin};

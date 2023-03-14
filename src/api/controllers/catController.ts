@@ -4,13 +4,14 @@ import {
   getAllCats,
   getCat,
   updateCat,
-  getCatByUser,
+  getCatsByUser,
 } from '../models/catModel';
-import { Request, Response, NextFunction } from 'express';
-import Cat from '../../interfaces/Cat';
-import User from '../../interfaces/User';
+import {Request, Response, NextFunction} from 'express';
+import {Cat, PostCat} from '../../interfaces/Cat';
+import {User} from '../../interfaces/User';
 import CustomError from '../../classes/CustomError';
-import { validationResult } from 'express-validator';
+import {validationResult} from 'express-validator';
+import MessageResponse from '../../interfaces/MessageResponse';
 
 const catListGet = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -42,9 +43,9 @@ const catGet = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const catPost = async (
-  req: Request<{}, {}, Cat>,
+  req: Request<{}, {}, PostCat>,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const errors = validationResult(req);
@@ -63,22 +64,18 @@ const catPost = async (
       throw err;
     }
 
-    const { name, weight, birthdate } = req.body;
+    const cat = req.body;
+    cat.owner = (req.user as User).user_id;
+    cat.filename = req.file.filename;
+    cat.lat = res.locals.coords[0];
+    cat.lng = res.locals.coords[1];
 
-    const data = [
-      name,
-      weight,
-      (req.user as User).user_id,
-      req.file.filename,
-      birthdate,
-      res.locals.coords,
-    ];
-
-    const id = await addCat(data);
-    res.json({
+    const id = await addCat(cat);
+    const message: MessageResponse = {
       message: 'cat added',
-      cat_id: id,
-    });
+      id: id,
+    };
+    res.json(message);
   } catch (error) {
     console.error('catPost', error);
     next(error);
@@ -86,9 +83,9 @@ const catPost = async (
 };
 
 const catPut = async (
-  req: Request<{ id: string }, {}, Cat>,
+  req: Request<{id: string}, {}, Cat>,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -102,27 +99,31 @@ const catPut = async (
   }
 
   try {
-    const { name, weight, owner, birthdate } = req.body;
-    const data = [
-      name,
-      weight,
-      birthdate,
-      owner,
-      req.params.id,
+    const id = parseInt(req.params.id);
+    const cat = req.body;
+    const result = await updateCat(
+      cat,
+      id,
       (req.user as User).user_id,
-    ];
-    const result = await updateCat(data, (req.user as User).role);
+      (req.user as User).role
+    );
     if (result) {
-      res.json({
-        message: 'cat modified',
-      });
+      const message: MessageResponse = {
+        message: 'cat updated',
+        id,
+      };
+      res.json(message);
     }
   } catch (error) {
     next(error);
   }
 };
 
-const catDelete = async (req: Request, res: Response, next: NextFunction) => {
+const catDelete = async (
+  req: Request<{id: string}, {}, {}>,
+  res: Response,
+  next: NextFunction
+) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const messages: string = errors
@@ -135,11 +136,14 @@ const catDelete = async (req: Request, res: Response, next: NextFunction) => {
   }
 
   try {
-    const result = await deleteCat(req.params.id);
+    const id = parseInt(req.params.id);
+    const result = await deleteCat(id);
     if (result) {
-      res.json({
+      const message: MessageResponse = {
         message: 'cat deleted',
-      });
+        id,
+      };
+      res.json(message);
     }
   } catch (error) {
     next(error);
@@ -149,7 +153,7 @@ const catDelete = async (req: Request, res: Response, next: NextFunction) => {
 const catGetByUser = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -164,11 +168,11 @@ const catGetByUser = async (
 
   try {
     const userId = (req.user as User).user_id;
-    const cat = await getCatByUser(userId);
+    const cat = await getCatsByUser(userId);
     res.json(cat);
   } catch (error) {
     next(error);
   }
 };
 
-export { catListGet, catGet, catPost, catPut, catDelete, catGetByUser };
+export {catListGet, catGet, catPost, catPut, catDelete, catGetByUser};

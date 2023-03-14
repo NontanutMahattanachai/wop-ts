@@ -1,11 +1,10 @@
 import express from 'express';
 import {
-  getApiRoot,
   getSingleUser,
   getUser,
   postAuthLogin,
   postAuthLoginError,
-} from '../../test/testFunctions';
+} from '../../test/userFunctions';
 
 const router = express.Router();
 
@@ -19,15 +18,13 @@ const router = express.Router();
 router.get('/:url', async (req, res) => {
   try {
     const url = req.params.url;
-    const testRoot = await getApiRoot(url);
     const testUserList = await getUser(url);
     const testSingleUser = await getSingleUser(url, testUserList[0].user_id!);
-    const testLogin = await postAuthLogin(url);
+    const testLogin = await postAuthLogin(url, {username: '', password: ''});
     const testLoginError = await postAuthLoginError(url);
 
     // Test passed
     res.json({
-      testRoot,
       testUserList,
       testSingleUser,
       testLogin,

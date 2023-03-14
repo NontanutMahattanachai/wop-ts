@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { NextFunction, Request, Response } from 'express';
+import {NextFunction, Request, Response} from 'express';
 import sharp from 'sharp';
-import { ExifImage } from 'exif';
+import {ExifImage} from 'exif';
 import ErrorResponse from './interfaces/ErrorResponse';
 import CustomError from './classes/CustomError';
 // import chalk from 'chalk';
@@ -23,11 +23,10 @@ const errorHandler = (
   err: CustomError,
   req: Request,
   res: Response<ErrorResponse>,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   // console.error('errorHandler', chalk.red(err.stack));
-  const statusCode = err.status !== 200 ? err.status || 500 : 500;
-  res.status(statusCode);
+  res.status(err.status || 500);
   res.json({
     message: err.message,
     stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack,
@@ -39,35 +38,35 @@ const getCoordinates = (req: Request, res: Response, next: NextFunction) => {
     console.log(req.file?.path);
     // TODO: Use node-exif to get longitude and latitude from imgFile
     // coordinates below should be an array of GPS coordinates in decimal format: [longitude, latitude]
-    new ExifImage({ image: req.file?.path }, (error, exifData) => {
+    new ExifImage({image: req.file?.path}, (error, exifData) => {
       if (error) {
         console.log('eka', error);
-        res.locals.coords = [];
+        res.locals.coords = [60, 24];
         next();
       } else {
         // console.log('exif data', exifData);
         try {
           const lon = gpsToDecimal(
             exifData.gps.GPSLongitude || [0, 0, 0],
-            exifData.gps.GPSLongitudeRef || 'N',
+            exifData.gps.GPSLongitudeRef || 'N'
           );
           const lat = gpsToDecimal(
             exifData.gps.GPSLatitude || [0, 0, 0],
-            exifData.gps.GPSLatitudeRef || 'E',
+            exifData.gps.GPSLatitudeRef || 'E'
           );
-          const coordinates = [lon, lat];
+          const coordinates = [lat, lon];
           res.locals.coords = coordinates;
           next();
         } catch (err) {
           console.log('toka', err);
-          res.locals.coords = [];
+          res.locals.coords = [60, 24];
           next();
         }
       }
     });
   } catch (error) {
     console.log('kolmas', error);
-    res.locals.coords = [];
+    res.locals.coords = [60, 24];
     next();
   }
 };
@@ -75,9 +74,10 @@ const getCoordinates = (req: Request, res: Response, next: NextFunction) => {
 const makeThumbnail = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
+    console.log(req.file?.path);
     await sharp(req.file?.path)
       .resize(160, 160)
       .png()
@@ -88,4 +88,4 @@ const makeThumbnail = async (
   }
 };
 
-export { notFound, errorHandler, getCoordinates, makeThumbnail };
+export {notFound, errorHandler, getCoordinates, makeThumbnail};

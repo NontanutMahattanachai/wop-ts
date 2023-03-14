@@ -1,8 +1,14 @@
-import { addUser, deleteUser, getAllUsers, getUser, updateUser } from '../models/userModel';
-import { Request, Response, NextFunction } from 'express';
+import {
+  addUser,
+  deleteUser,
+  getAllUsers,
+  getUser,
+  updateUser,
+} from '../models/userModel';
+import {Request, Response, NextFunction} from 'express';
 import CustomError from '../../classes/CustomError';
 import bcrypt from 'bcryptjs';
-import User from '../../interfaces/User';
+import {User} from '../../interfaces/User';
 const salt = bcrypt.genSaltSync(12);
 
 const userListGet = async (req: Request, res: Response, next: NextFunction) => {
@@ -14,7 +20,11 @@ const userListGet = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const userGet = async (req: Request<{ id: string }, {}, {}>, res: Response, next: NextFunction) => {
+const userGet = async (
+  req: Request<{id: string}, {}, {}>,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const user = await getUser(req.params.id);
     res.json(user);
@@ -23,14 +33,16 @@ const userGet = async (req: Request<{ id: string }, {}, {}>, res: Response, next
   }
 };
 
-const userPost = async (req: Request<{}, {}, User>, res: Response, next: NextFunction) => {
+const userPost = async (
+  req: Request<{}, {}, User>,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { name, email, password } = req.body;
-    const hash = bcrypt.hashSync(password, salt);
+    const user = req.body;
+    user.password = bcrypt.hashSync(user.password, salt);
 
-    const data = [name, email, hash];
-
-    const id = await addUser(data);
+    const id = await addUser(user);
     res.json({
       message: 'user added',
       user_id: id,
@@ -41,13 +53,19 @@ const userPost = async (req: Request<{}, {}, User>, res: Response, next: NextFun
   }
 };
 
-const userPut = async (req: Request<{ id: string }, {}, User>, res: Response, next: NextFunction) => {
+const userPut = async (
+  req: Request<{id: number}, {}, User>,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     if ((req.user as User).role !== 'admin') {
       throw new CustomError('Admin only', 403);
     }
-    const data = [req.body.name!, req.body.email!, req.body.password!, req.params.id];
-    const result = await updateUser(data);
+
+    const user = req.body;
+
+    const result = await updateUser(user, req.params.id);
     if (result) {
       res.json({
         message: 'user modified',
@@ -58,10 +76,14 @@ const userPut = async (req: Request<{ id: string }, {}, User>, res: Response, ne
   }
 };
 
-const userPutCurrent = async (req: Request<{}, {}, User>, res: Response, next: NextFunction) => {
+const userPutCurrent = async (
+  req: Request<{}, {}, User>,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const data = [req.body.name, req.body.email, req.body.password, (req.user as User).user_id];
-    const result = await updateUser(data);
+    const user = req.body;
+    const result = await updateUser(user, (req.user as User).user_id);
     if (result) {
       res.json({
         message: 'user modified',
@@ -72,7 +94,11 @@ const userPutCurrent = async (req: Request<{}, {}, User>, res: Response, next: N
   }
 };
 
-const userDelete = async (req: Request<{ id: string }, {}, {}>, res: Response, next: NextFunction) => {
+const userDelete = async (
+  req: Request<{id: number}, {}, {}>,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     if ((req.user as User).role !== 'admin') {
       throw new CustomError('Admin only', 403);
@@ -88,9 +114,13 @@ const userDelete = async (req: Request<{ id: string }, {}, {}>, res: Response, n
   }
 };
 
-const userDeleteCurrent = async (req: Request, res: Response, next: NextFunction) => {
+const userDeleteCurrent = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const result = await deleteUser((req.user as User).user_id!);
+    const result = await deleteUser((req.user as User).user_id);
     if (result) {
       res.json({
         message: 'user deleted',
@@ -109,4 +139,13 @@ const checkToken = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export { userListGet, userGet, userPost, userPut, userPutCurrent, userDelete, userDeleteCurrent, checkToken };
+export {
+  userListGet,
+  userGet,
+  userPost,
+  userPut,
+  userPutCurrent,
+  userDelete,
+  userDeleteCurrent,
+  checkToken,
+};

@@ -1,26 +1,25 @@
 import passport from 'passport';
-import { Strategy } from 'passport-local';
-import { Strategy as JWTStrategy, ExtractJwt } from 'passport-jwt';
+import {Strategy} from 'passport-local';
+import {Strategy as JWTStrategy, ExtractJwt} from 'passport-jwt';
 import bcrypt from 'bcryptjs';
-import { getUserLogin } from '../api/models/userModel';
-import User from '../interfaces/User';
+import {getUserLogin} from '../api/models/userModel';
 
 passport.use(
   new Strategy(async (username, password, done) => {
     try {
       console.log(username, password);
-      const user: User = await getUserLogin(username);
+      const user = await getUserLogin(username);
       if (!user) {
         return done(null, false);
       }
       if (!bcrypt.compareSync(password, user.password!)) {
         return done(null, false);
       }
-      return done(null, user, { message: 'Logged In Successfully' }); // use spread syntax to create shallow copy to get rid of binary row type
+      return done(null, user, {message: 'Logged In Successfully'}); // use spread syntax to create shallow copy to get rid of binary row type
     } catch (err) {
       return done(err);
     }
-  }),
+  })
 );
 
 // TODO: JWT strategy for handling bearer token
@@ -34,8 +33,8 @@ passport.use(
     (jwtPayload, done) => {
       // console.log('payload', jwtPayload);
       done(null, jwtPayload);
-    },
-  ),
+    }
+  )
 );
 
 export default passport;

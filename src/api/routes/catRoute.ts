@@ -1,4 +1,4 @@
-import express, { Request } from 'express';
+import express, {Request} from 'express';
 import {
   catDelete,
   catGet,
@@ -7,15 +7,15 @@ import {
   catPut,
   catGetByUser,
 } from '../controllers/catController';
-import multer, { FileFilterCallback } from 'multer';
-import { body, param } from 'express-validator';
+import multer, {FileFilterCallback} from 'multer';
+import {body, param} from 'express-validator';
 import passport from '../../passport';
-import { getCoordinates, makeThumbnail } from '../../middlewares';
+import {getCoordinates, makeThumbnail} from '../../middlewares';
 
 const fileFilter = (
   request: Request,
   file: Express.Multer.File,
-  cb: FileFilterCallback,
+  cb: FileFilterCallback
 ) => {
   if (file.mimetype.includes('image')) {
     cb(null, true);
@@ -23,39 +23,39 @@ const fileFilter = (
     cb(null, false);
   }
 };
-const upload = multer({ dest: './uploads/', fileFilter });
+const upload = multer({dest: './uploads/', fileFilter});
 const router = express.Router();
 
 router
   .route('/')
   .get(catListGet)
   .post(
-    passport.authenticate('jwt', { session: false }),
+    passport.authenticate('jwt', {session: false}),
     upload.single('cat'),
     makeThumbnail,
     getCoordinates,
-    body('name').notEmpty().escape(),
+    body('cat_name').notEmpty().escape(),
     body('birthdate').isDate(),
     body('weight').isNumeric(),
-    catPost,
+    catPost
   );
 
 router
   .route('/:id')
   .get(param('id').isNumeric(), catGet)
   .put(
-    passport.authenticate('jwt', { session: false }),
+    passport.authenticate('jwt', {session: false}),
     param('id').isNumeric(),
-    catPut,
+    catPut
   )
   .delete(
-    passport.authenticate('jwt', { session: false }),
+    passport.authenticate('jwt', {session: false}),
     param('id').isNumeric(),
-    catDelete,
+    catDelete
   );
 
 router
   .route('/user')
-  .get(passport.authenticate('jwt', { session: false }), catGetByUser);
+  .get(passport.authenticate('jwt', {session: false}), catGetByUser);
 
 export default router;
