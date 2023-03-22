@@ -18,7 +18,7 @@ const getAllCats = async (): Promise<Cat[]> => {
   }
   const cats: Cat[] = rows.map((row) => ({
     ...row,
-    owner: JSON.parse(row.owner?.toString() || '{}'),
+    owner: JSON.parse(row.owner.toString() || '{}'),
   }));
 
   return cats;
